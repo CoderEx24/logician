@@ -18,7 +18,7 @@ fn get_operator_symbol(operation: &Operation) -> char {
     match operation {
         Operation::AND => '^',
         Operation::OR => '\u{2228}',
-        Operation::XOR => '\u{22bb}',
+        Operation::XOR => '\u{2295}',
         Operation::IMPLY => '\u{2192}',
         Operation::IFF => '\u{27f7}',
     }
