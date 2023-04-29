@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[derive(Clone, PartialEq)]
 pub struct Proposition {
     text: String,
     letter: char,
@@ -9,7 +10,7 @@ pub struct Proposition {
 impl Proposition {
     pub fn new(s: &String) -> Proposition {
         Proposition {
-            text: s.clone(),
+            text: s.clone().replace("not ", ""),
             // TODO: better way to assign values to letter and negated
             letter: s.as_bytes()[0].into(),
             negated: s.contains("not"),
