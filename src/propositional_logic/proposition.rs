@@ -35,6 +35,6 @@ impl Proposition {
 
 impl Display for Proposition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.letter, self.text)
+        write!(f, "{}{}", if self.negated { '\u{00ac}' } else { '\0' } , self.letter)
     }
 }
