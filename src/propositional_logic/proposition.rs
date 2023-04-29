@@ -16,8 +16,8 @@ impl Proposition {
         }
     }
 
-    pub fn text(&self) -> String {
-        self.text
+    pub fn text(&self) -> &String {
+        &self.text
     }
 
     pub fn letter(&self) -> char {
