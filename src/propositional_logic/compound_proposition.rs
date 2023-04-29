@@ -13,7 +13,9 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq)]
 pub enum Operands {
+    Atomic(Proposition),
     Simple(Proposition, Proposition),
+    Mixed(Box<CompoundProposition>, Proposition),
     Complex(Box<CompoundProposition>, Box<CompoundProposition>),
 }
 
@@ -31,6 +33,9 @@ fn parse_operands(operands: &Operands) -> (String, String) {
     match operands {
         Operands::Simple(a, b) => (a.to_string(), b.to_string()),
         Operands::Complex(a, b) => (a.to_string(), b.to_string()),
+        Operands::Mixed(a, b) => (a.to_string(), b.to_string()),
+        // TODO: this is an invalid state, we need to do better error handling
+        _ => ("".to_string(), "".to_string())
     }
 }
 
@@ -49,26 +54,58 @@ impl CompoundProposition {
     }
 
     pub fn parse_sentence(sentence: &str) -> CompoundProposition {
+        let process_captures = move |captures: regex::Captures, operation: Operation| {
+            let op1 = CompoundProposition::parse_sentence(&captures["op1"]);
+            let op2 = CompoundProposition::parse_sentence(&captures["op2"]);
+
+            let (degrade1, degrade2) = (op1.degrade(), op2.degrade());
+
+            let operands = if degrade1.is_some() && degrade2.is_some() {
+                Operands::Simple(degrade1.unwrap(), degrade2.unwrap())
+            } else if degrade1.is_some() {
+                Operands::Mixed(Box::new(op2), degrade1.unwrap())
+            } else if degrade2.is_some() {
+                Operands::Mixed(Box::new(op1), degrade2.unwrap())
+            } else {
+                Operands::Complex(Box::new(op1), Box::new(op2))
+            };
+
+            CompoundProposition::new(&operands, operation)
+        };
+
+
         let sentence = sentence.to_lowercase();
         let sentence = sentence.as_str();
         let and_regex = Regex::new(r"(?P<op1>.+) and (?P<op2>.+)").unwrap();
+        let or_regex  = Regex::new(r"(?P<op1>.+) or (?P<op2>.+)").unwrap();
+        let imply_regex = Regex::new(r"if (?P<op1>.+), then (?P<op2>.+)").unwrap();
+        let iff_regex = Regex::new(r"(?P<op1>.+) iff (?P<op2>.+)").unwrap();
 
         let and_captures = and_regex.captures(sentence);
+        let or_captures = or_regex.captures(sentence);
+        let imply_captures = imply_regex.captures(sentence);
+        let iff_captures = iff_regex.captures(sentence);
 
-        if and_captures.is_some() {
-            let captures = and_captures.unwrap();
-            let op1 = Proposition::new(&String::from(&captures["op1"]));
-            let op2 = Proposition::new(&String::from(&captures["op2"]));
-
-            let operands = Operands::Simple(op1, op2);
-            return CompoundProposition::new(&operands, Operation::AND);
-
+        if iff_captures.is_some() {
+            process_captures(iff_captures.unwrap(), Operation::IFF)
+        } else if imply_captures.is_some() {
+            process_captures(imply_captures.unwrap(), Operation::IMPLY)
+        } else if or_captures.is_some() {
+            process_captures(or_captures.unwrap(), Operation::OR)
+        } else if and_captures.is_some() {
+            process_captures(and_captures.unwrap(), Operation::AND)
         } else {
-            let op1 = Proposition::new(&String::from("lol"));
-            let op2 = Proposition::new(&String::from("non"));
+            let operands = Operands::Atomic(Proposition::new(&String::from(sentence)));
 
-            let operands = Operands::Simple(op1, op2);
-            return CompoundProposition::new(&operands, Operation::AND);
+            CompoundProposition::new(&operands, Operation::OR)
+        }
+    }
+
+    pub fn degrade(&self) -> Option<Proposition> {
+        if let Operands::Atomic(p) = &self.operands {
+            Some(p.clone())
+        } else {
+            None
         }
     }
 }
