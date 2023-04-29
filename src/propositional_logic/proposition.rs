@@ -3,8 +3,7 @@ use std::fmt::Display;
 pub struct Proposition {
     text: String,
     letter: char,
-    negated: bool
-
+    negated: bool,
 }
 
 impl Proposition {
@@ -17,10 +16,21 @@ impl Proposition {
         }
     }
 
+    pub fn text(&self) -> String {
+        self.text
+    }
+
+    pub fn letter(&self) -> char {
+        self.letter
+    }
+
+    pub fn negated(&self) -> bool {
+        self.negated
+    }
+
     pub fn negate(&mut self) {
         self.negated = !self.negated;
     }
-
 }
 
 impl Display for Proposition {
@@ -28,4 +38,3 @@ impl Display for Proposition {
         write!(f, "{}: {}", self.letter, self.text)
     }
 }
-
