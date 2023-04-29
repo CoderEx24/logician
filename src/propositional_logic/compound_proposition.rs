@@ -15,7 +15,7 @@ pub enum Operation {
 pub enum Operands {
     Atomic(Proposition),
     Simple(Proposition, Proposition),
-    Mixed(Box<CompoundProposition>, Proposition),
+    Mixed(Box<CompoundProposition>, Proposition, bool),
     Complex(Box<CompoundProposition>, Box<CompoundProposition>),
 }
 
@@ -33,7 +33,7 @@ fn parse_operands(operands: &Operands) -> (String, String) {
     match operands {
         Operands::Simple(a, b) => (a.to_string(), b.to_string()),
         Operands::Complex(a, b) => (a.to_string(), b.to_string()),
-        Operands::Mixed(a, b) => (a.to_string(), b.to_string()),
+        Operands::Mixed(a, b, flip) => if *flip { (b.to_string(), a.to_string()) } else { (a.to_string(), b.to_string()) },
         // TODO: this is an invalid state, we need to do better error handling
         _ => ("".to_string(), "".to_string())
     }
@@ -63,9 +63,9 @@ impl CompoundProposition {
             let operands = if degrade1.is_some() && degrade2.is_some() {
                 Operands::Simple(degrade1.unwrap(), degrade2.unwrap())
             } else if degrade1.is_some() {
-                Operands::Mixed(Box::new(op2), degrade1.unwrap())
+                Operands::Mixed(Box::new(op2), degrade1.unwrap(), true)
             } else if degrade2.is_some() {
-                Operands::Mixed(Box::new(op1), degrade2.unwrap())
+                Operands::Mixed(Box::new(op1), degrade2.unwrap(), false)
             } else {
                 Operands::Complex(Box::new(op1), Box::new(op2))
             };
