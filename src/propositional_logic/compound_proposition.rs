@@ -108,17 +108,25 @@ impl CompoundProposition {
             None
         }
     }
+
+    pub fn operands(&self) -> Operands {
+        self.operands.clone()
+    }
 }
 
 impl Display for CompoundProposition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let operands = parse_operands(&self.operands);
-        write!(
-            f,
-            "({} {} {})",
-            operands.0,
-            get_operator_symbol(&self.operation),
-            operands.1
-        )
+        if let Operands::Atomic(p) = &self.operands {
+            write!(f, "{}", p)
+        } else {
+            let operands = parse_operands(&self.operands);
+            write!(
+                f,
+                "({} {} {})",
+                operands.0,
+                get_operator_symbol(&self.operation),
+                operands.1
+            )
+        }
     }
 }
