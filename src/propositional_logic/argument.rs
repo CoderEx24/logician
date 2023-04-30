@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use super::compound_proposition::{CompoundProposition, Operands};
 use super::proposition::Proposition;
 
@@ -42,8 +43,36 @@ impl Argument {
         }
     }
 
+    pub fn parse_argument(argument: &str) -> Argument {
+        let mut premises: Vec<CompoundProposition> = argument.lines().filter(|l| !l.trim().is_empty())
+            .map(|l| CompoundProposition::parse_sentence(l)).collect();
+        let conclusion = premises.pop().unwrap();
+
+        Argument::new(premises, conclusion)
+        
+    }
+
     pub fn propositional_variables(&self) -> &HashMap<String, String> {
         &self.propositional_variables
+    }
+}
+
+
+impl Display for Argument {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+
+        for (k, v) in &self.propositional_variables {
+            string += format!("{}: {}\n", k, v).as_str();
+        }
+
+        for premise in &self.premises {
+            string += format!("{}\n", premise).as_str()
+        }
+
+        string += format!("Conclusion: {}\n", self.conclusion).as_str();
+
+        write!(f, "{}", string)
     }
 }
 
