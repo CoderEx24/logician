@@ -13,7 +13,6 @@ pub fn get_propositional_variables(proposition: &CompoundProposition) -> HashMap
     let mut map = HashMap::new();
     
     match proposition.operands() {
-        Operands::Atomic(p) => { map.insert(p.letter().to_string(), p.text().to_owned()); },
         Operands::Simple(a, b) => {
             map.insert(a.letter().to_string(), a.text().to_owned());
             map.insert(b.letter().to_string(), b.text().to_owned());
