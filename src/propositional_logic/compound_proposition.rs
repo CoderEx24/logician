@@ -13,10 +13,9 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq)]
 pub enum Operands {
-    Atomic(Proposition),
     Simple(Proposition, Proposition),
-    Mixed(Box<CompoundProposition>, Proposition, bool),
     Complex(Box<CompoundProposition>, Box<CompoundProposition>),
+    Mixed(Box<CompoundProposition>, Proposition, bool),
 }
 
 fn get_operator_symbol(operation: &Operation) -> char {
@@ -34,8 +33,6 @@ fn parse_operands(operands: &Operands) -> (String, String) {
         Operands::Simple(a, b) => (a.to_string(), b.to_string()),
         Operands::Complex(a, b) => (a.to_string(), b.to_string()),
         Operands::Mixed(a, b, flip) => if *flip { (b.to_string(), a.to_string()) } else { (a.to_string(), b.to_string()) },
-        // TODO: this is an invalid state, we need to do better error handling
-        _ => ("".to_string(), "".to_string())
     }
 }
 
@@ -95,15 +92,29 @@ impl CompoundProposition {
         } else if and_captures.is_some() {
             process_captures(and_captures.unwrap(), Operation::AND)
         } else {
-            let operands = Operands::Atomic(Proposition::new(&String::from(sentence)));
+            let p = Proposition::new(&String::from(sentence));
+            let operands = Operands::Simple(p.clone(), p.clone());
 
             CompoundProposition::new(&operands, Operation::OR)
         }
     }
 
+    pub fn is_redundant(&self) -> bool {
+        (self.operation == Operation::OR || self.operation == Operation::AND) 
+            && match &self.operands {
+            Operands::Simple(a, b) => a == b,
+            _ => false
+        }
+    }
+
     pub fn degrade(&self) -> Option<Proposition> {
-        if let Operands::Atomic(p) = &self.operands {
-            Some(p.clone())
+        if self.is_redundant() {
+            if let Operands::Simple(o, _) = &self.operands {
+                Some(o.clone())
+            } else {
+                None
+            }
+
         } else {
             None
         }
@@ -116,17 +127,13 @@ impl CompoundProposition {
 
 impl Display for CompoundProposition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Operands::Atomic(p) = &self.operands {
-            write!(f, "{}", p)
-        } else {
-            let operands = parse_operands(&self.operands);
-            write!(
-                f,
-                "({} {} {})",
-                operands.0,
-                get_operator_symbol(&self.operation),
-                operands.1
-            )
-        }
+        let operands = parse_operands(&self.operands);
+        write!(
+            f,
+            "({} {} {})",
+            operands.0,
+            get_operator_symbol(&self.operation),
+            operands.1
+        )
     }
 }
