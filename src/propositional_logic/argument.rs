@@ -65,13 +65,28 @@ impl Argument {
         ];
 
         let mut premises = self.premises.clone();
+        let mut premises_len = premises.len();
 
-        for op1 in &self.premises {
-            for op2 in &self.premises {
-                let results: Vec<CompoundProposition> = rules_of_inference.iter()
-                    .map(|rule| rule(&op1, &op2))
+        let mut i = 0;
+
+        while i < premises_len {
+            let op1 = &premises[i].clone();
+
+            let mut j = 0;
+            while j < premises_len {
+                if i == j {
+                    j += 1;
+                    continue;
+                }
+
+
+                let op2 = &premises[j].clone();
+
+                let mut results: Vec<CompoundProposition> = rules_of_inference.iter()
+                    .map(|rule| rule(&op1, &op2).or(rule(&op2, &op1)))
                     .filter(|value| value.is_some())
                     .map(|value| value.unwrap())
+                    .filter(|value| !premises.contains(value))
                     .collect();
 
                 if results.len() > 0 {
@@ -81,8 +96,21 @@ impl Argument {
                     }
                 }
 
+                if results.contains(&self.conclusion) {
+                    println!("CONCLUSION REACHED!!!!!!");
+                }
+               
+                premises_len += results.len();
+                premises.append(&mut results);
+                
+           //     println!("(i, j) = ({}, {}) - {}", i, j, premises_len);
+           //     println!("ops: {}, {}\nnew premises: {}", op1, op2, premises.iter().map(|p| format!("{}, ", p)).reduce(|a, v| format!("{}{}", a, v)).unwrap());
+
+                j += 1;
             }
+            i += 1;
         }
+
 
         false
 
