@@ -2,7 +2,7 @@ use super::proposition::Proposition;
 use std::fmt::Display;
 use regex::Regex;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Operation {
     AND,
     OR,
@@ -11,12 +11,20 @@ pub enum Operation {
     IFF,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Operands {
     Simple(Proposition, Proposition),
     Complex(Box<CompoundProposition>, Box<CompoundProposition>),
     Mixed(Box<CompoundProposition>, Proposition, bool),
 }
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct CompoundProposition {
+    operands: Operands,
+    operation: Operation,
+    negated: bool,
+}
+
 
 fn get_operator_symbol(operation: &Operation) -> char {
     match operation {
@@ -36,17 +44,24 @@ fn parse_operands(operands: &Operands) -> (String, String) {
     }
 }
 
-#[derive(Clone, PartialEq)]
-pub struct CompoundProposition {
-    operands: Operands,
-    operation: Operation,
-}
-
 impl CompoundProposition {
     pub fn new(operands: &Operands, operation: Operation) -> CompoundProposition {
         CompoundProposition {
             operands: operands.clone(),
             operation,
+            negated: false,
+        }
+    }
+
+    pub fn new_redendant(p: &Proposition) -> CompoundProposition {
+        CompoundProposition {
+            operands: Operands::Simple(p.clone(), p.clone()), /*if p.negated() {
+                Operands::Simple(p.clone().negate(), p.clone().negate())
+            } else {
+                Operands::Simple(p.clone(), p.clone())
+            },*/
+            operation: Operation::OR,
+            negated: false,
         }
     }
 
@@ -110,7 +125,8 @@ impl CompoundProposition {
     pub fn degrade(&self) -> Option<Proposition> {
         if self.is_redundant() {
             if let Operands::Simple(o, _) = &self.operands {
-                Some(o.clone())
+                let o = if self.negated { o.clone().negate() } else { o.clone() };
+                Some(o)
             } else {
                 None
             }
@@ -120,8 +136,24 @@ impl CompoundProposition {
         }
     }
 
+    pub fn negate(&mut self) -> CompoundProposition {
+//        self.negated = ! self.negated;
+
+        self.operands = match &self.operands {
+            Operands::Simple(a, b) => Operands::Simple(a.clone().negate(), b.clone().negate()),
+            Operands::Complex(a, b) => Operands::Complex(Box::new(a.clone().negate()), Box::new(b.clone().negate())),
+            Operands::Mixed(a, b, c) => Operands::Mixed(Box::new(a.clone().negate()), b.clone().negate(), *c),
+        };
+
+        self.clone()
+    }
+
     pub fn operands(&self) -> Operands {
         self.operands.clone()
+    }
+
+    pub fn operation(&self) -> Operation {
+        self.operation.clone()
     }
 }
 
@@ -130,10 +162,12 @@ impl Display for CompoundProposition {
         let operands = parse_operands(&self.operands);
         write!(
             f,
-            "({} {} {})",
+            "{}({} {} {})",
+            if self.negated { '\u{00ac}' } else { '\0' },
             operands.0,
             get_operator_symbol(&self.operation),
             operands.1
         )
     }
 }
+
