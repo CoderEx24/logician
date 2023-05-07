@@ -43,7 +43,7 @@ impl Argument {
     }
 
     pub fn check_argument(&self) -> bool {
-        let rules_of_inference = vec![
+        let rules_of_inference = [
             // modes ponens
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
                 let (op1, op2) = match proposition1.operands() {
@@ -58,6 +58,25 @@ impl Argument {
                 
                 if proposition1.operation() == Operation::IMPLY && op1 == *proposition2 { 
                     Some(op2)
+                } else {
+                    None
+                }
+            },
+
+            // modes tollens
+            |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
+                let (op1, op2) = match proposition1.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+                
+                if proposition1.operation() == Operation::IMPLY && op2.clone().negate() == *proposition2 { 
+                    Some(op1.clone().negate())
                 } else {
                     None
                 }
@@ -89,13 +108,6 @@ impl Argument {
                     .filter(|value| !premises.contains(value))
                     .collect();
 
-                if results.len() > 0 {
-                    println!("{} and {} result in the following using modes ponens:-", op1, op2);
-                    for r in &results {
-                        println!("\t{}", r);
-                    }
-                }
-
                 if results.contains(&self.conclusion) {
                     println!("CONCLUSION REACHED!!!!!!");
                 }
@@ -103,9 +115,6 @@ impl Argument {
                 premises_len += results.len();
                 premises.append(&mut results);
                 
-           //     println!("(i, j) = ({}, {}) - {}", i, j, premises_len);
-           //     println!("ops: {}, {}\nnew premises: {}", op1, op2, premises.iter().map(|p| format!("{}, ", p)).reduce(|a, v| format!("{}{}", a, v)).unwrap());
-
                 j += 1;
             }
             i += 1;
