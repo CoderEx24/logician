@@ -143,6 +143,59 @@ impl Argument {
                     None
                 }
             },
+
+            // Conjunction
+            /*|proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
+                Some(CompoundProposition::new(&Operands::Complex(Box::new(proposition1), Box::new(proposition2)), Operation::AND)) 
+            },*/
+
+            // Resolution
+            |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
+                let (op1_1, op2_1) = match proposition1.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+                
+                let (op1_2, op2_2) = match proposition2.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+
+                //println!("Resolution: {} {}, {} {} {}", proposition1, proposition2, op1_1.clone().negate(), op1_2, op1_1.clone().negate() == op1_2);
+                if proposition1.operation() == Operation::OR && proposition2.operation() == Operation::OR
+                    && op1_1.clone().negate() == op1_2 {
+                        let operands = if op2_1.is_redundant() && op2_2.is_redundant() {
+                            Operands::Simple(op2_1.degrade().unwrap(), op2_2.degrade().unwrap())
+
+                        } else if op2_1.is_redundant() {
+                            Operands::Mixed(Box::new(op2_2.clone()), op2_1.degrade().unwrap(), true)
+
+                        } else if op2_2.is_redundant() {
+                            Operands::Mixed(Box::new(op2_1.clone()), op2_2.degrade().unwrap(), false)
+
+                        } else {
+                            Operands::Complex(Box::new(op2_1.clone()), Box::new(op2_2.clone()))
+                        };
+
+                        let p = CompoundProposition::new(&operands, Operation::OR);
+                        println!("Resolution: {}", p);
+                        Some(p)
+
+                    } else {
+                        None
+                    }
+
+            }
         ];
 
         let mut premises = self.premises.clone();
