@@ -104,7 +104,7 @@ impl Argument {
                     }
                 };
 
-                println!("{} {} ---> {} {} {}", proposition1, proposition2, op1_2, op2_1, op1_2 == op2_1);
+                //println!("HS {} {} ---> {} {} {}", proposition1, proposition2, op1_2, op2_1, op1_2 == op2_1);
                 if proposition1.operation() == Operation::IMPLY && proposition2.operation() == Operation::IMPLY
                     && (op2_1 == op1_2) {
                         let operands = if op1_1.is_redundant() && op2_2.is_redundant() {
@@ -120,6 +120,25 @@ impl Argument {
                         };
 
                         Some(CompoundProposition::new(&operands, Operation::IMPLY))
+                } else {
+                    None
+                }
+            },
+
+            // Disjunctive syllogism
+            |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
+                let (op1, op2) = match proposition1.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+                
+                if proposition1.operation() == Operation::OR && (op1.clone().negate() == *proposition2) {
+                    Some(op2.clone())
                 } else {
                     None
                 }
