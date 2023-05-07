@@ -81,6 +81,49 @@ impl Argument {
                     None
                 }
             },
+
+            // Hypothetical syllogism
+            |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
+                let (op1_1, op2_1) = match proposition1.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+                
+                let (op1_2, op2_2) = match proposition2.operands() {
+                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
+                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
+                    Operands::Mixed(a, b, flip) => if flip {
+                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
+                    } else {
+                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
+                    }
+                };
+
+                println!("{} {} ---> {} {} {}", proposition1, proposition2, op1_2, op2_1, op1_2 == op2_1);
+                if proposition1.operation() == Operation::IMPLY && proposition2.operation() == Operation::IMPLY
+                    && (op2_1 == op1_2) {
+                        let operands = if op1_1.is_redundant() && op2_2.is_redundant() {
+                            Operands::Simple(op1_1.degrade().unwrap(), op2_2.degrade().unwrap())
+                        } else if op1_1.is_redundant() {
+                            Operands::Mixed(Box::new(op2_2.clone()), op1_1.degrade().unwrap(), true)
+
+                        } else if op2_2.is_redundant() {
+                            Operands::Mixed(Box::new(op1_1.clone()), op2_2.degrade().unwrap(), false)
+
+                        } else {
+                            Operands::Complex(Box::new(op1_1.clone()), Box::new(op2_2.clone()))
+                        };
+
+                        Some(CompoundProposition::new(&operands, Operation::IMPLY))
+                } else {
+                    None
+                }
+            },
         ];
 
         let mut premises = self.premises.clone();
@@ -114,6 +157,7 @@ impl Argument {
                
                 premises_len += results.len();
                 premises.append(&mut results);
+                // println!("permises: {}", premises.iter().map(|p| format!("{}", p)).reduce(|a, v| format!("{}, {}", a, v)).unwrap());
                 
                 j += 1;
             }
