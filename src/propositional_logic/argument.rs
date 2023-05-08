@@ -225,6 +225,7 @@ impl Argument {
 
                 if results.contains(&self.conclusion) {
                     println!("CONCLUSION REACHED!!!!!!");
+                    true
                 }
                
                 premises_len += results.len();
