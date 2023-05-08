@@ -185,15 +185,19 @@ impl CompoundProposition {
 
 impl Display for CompoundProposition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let operands = parse_operands(&self.operands);
-        write!(
-            f,
-            "{}({} {} {})",
-            if self.negated { '\u{00ac}' } else { '\0' },
-            operands.0,
-            get_operator_symbol(&self.operation),
-            operands.1
-        )
+        if self.is_redundant() {
+            write!(f, "{}", self.degrade().unwrap())
+        } else { 
+            let operands = parse_operands(&self.operands);
+            write!(
+                f,
+                "{}({} {} {})",
+                if self.negated { '\u{00ac}' } else { '\0' },
+                operands.0,
+                get_operator_symbol(&self.operation),
+                operands.1
+            )
+        }
     }
 }
 
