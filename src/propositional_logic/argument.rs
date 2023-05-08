@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use super::compound_proposition::{CompoundProposition, Operands, Operation};
+use super::compound_proposition::{
+    CompoundProposition, Operands, Operation, pack_operands, unpack_operands,
+};
 use super::proposition::Proposition;
 
 pub struct Argument {
@@ -46,16 +48,8 @@ impl Argument {
         let rules_of_inference = [
             // modes ponens
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
-                let (op1, op2) = match proposition1.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
-                
+                let (op1, op2) = unpack_operands(&proposition1.operands());                
+
                 if proposition1.operation() == Operation::IMPLY && op1 == *proposition2 { 
                     Some(op2)
                 } else {
@@ -65,16 +59,8 @@ impl Argument {
 
             // modes tollens
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
-                let (op1, op2) = match proposition1.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
-                
+                let (op1, op2) = unpack_operands(&proposition1.operands());                
+
                 if proposition1.operation() == Operation::IMPLY && op2.clone().negate() == *proposition2 { 
                     Some(op1.clone().negate())
                 } else {
@@ -84,42 +70,14 @@ impl Argument {
 
             // Hypothetical syllogism
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
-                let (op1_1, op2_1) = match proposition1.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
-                
-                let (op1_2, op2_2) = match proposition2.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
+                let (op1_1, op2_1) = unpack_operands(&proposition1.operands());                
+                let (op1_2, op2_2) = unpack_operands(&proposition2.operands());
 
-                //println!("HS {} {} ---> {} {} {}", proposition1, proposition2, op1_2, op2_1, op1_2 == op2_1);
                 if proposition1.operation() == Operation::IMPLY && proposition2.operation() == Operation::IMPLY
                     && (op2_1 == op1_2) {
-                        let operands = if op1_1.is_redundant() && op2_2.is_redundant() {
-                            Operands::Simple(op1_1.degrade().unwrap(), op2_2.degrade().unwrap())
-                        } else if op1_1.is_redundant() {
-                            Operands::Mixed(Box::new(op2_2.clone()), op1_1.degrade().unwrap(), true)
+                    let operands = pack_operands(&op1_1, &op2_2);
 
-                        } else if op2_2.is_redundant() {
-                            Operands::Mixed(Box::new(op1_1.clone()), op2_2.degrade().unwrap(), false)
-
-                        } else {
-                            Operands::Complex(Box::new(op1_1.clone()), Box::new(op2_2.clone()))
-                        };
-
-                        Some(CompoundProposition::new(&operands, Operation::IMPLY))
+                    Some(CompoundProposition::new(&operands, Operation::IMPLY))
                 } else {
                     None
                 }
@@ -127,16 +85,8 @@ impl Argument {
 
             // Disjunctive syllogism
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
-                let (op1, op2) = match proposition1.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
-                
+                let (op1, op2) = unpack_operands(&proposition1.operands());                
+
                 if proposition1.operation() == Operation::OR && (op1.clone().negate() == *proposition2) {
                     Some(op2.clone())
                 } else {
@@ -151,44 +101,14 @@ impl Argument {
 
             // Resolution
             |proposition1: &CompoundProposition, proposition2: &CompoundProposition| -> Option<CompoundProposition> {
-                let (op1_1, op2_1) = match proposition1.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
-                
-                let (op1_2, op2_2) = match proposition2.operands() {
-                    Operands::Simple(a, b) => ((CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b))),
-                    Operands::Complex(a, b) => ((*a.clone(), *b.clone())),
-                    Operands::Mixed(a, b, flip) => if flip {
-                        ((CompoundProposition::new_redendant(&b), *a.clone())) 
-                    } else {
-                        ((*a.clone(), CompoundProposition::new_redendant(&b))) 
-                    }
-                };
+                let (op1_1, op2_1) = unpack_operands(&proposition1.operands());                
+                let (op1_2, op2_2) = unpack_operands(&proposition2.operands());
 
-                //println!("Resolution: {} {}, {} {} {}", proposition1, proposition2, op1_1.clone().negate(), op1_2, op1_1.clone().negate() == op1_2);
                 if proposition1.operation() == Operation::OR && proposition2.operation() == Operation::OR
                     && op1_1.clone().negate() == op1_2 {
-                        let operands = if op2_1.is_redundant() && op2_2.is_redundant() {
-                            Operands::Simple(op2_1.degrade().unwrap(), op2_2.degrade().unwrap())
-
-                        } else if op2_1.is_redundant() {
-                            Operands::Mixed(Box::new(op2_2.clone()), op2_1.degrade().unwrap(), true)
-
-                        } else if op2_2.is_redundant() {
-                            Operands::Mixed(Box::new(op2_1.clone()), op2_2.degrade().unwrap(), false)
-
-                        } else {
-                            Operands::Complex(Box::new(op2_1.clone()), Box::new(op2_2.clone()))
-                        };
+                        let operands =  pack_operands(&op2_1, &op2_2); 
 
                         let p = CompoundProposition::new(&operands, Operation::OR);
-                        println!("Resolution: {}", p);
                         Some(p)
 
                     } else {
@@ -225,7 +145,7 @@ impl Argument {
 
                 if results.contains(&self.conclusion) {
                     println!("CONCLUSION REACHED!!!!!!");
-                    true
+                    return true;
                 }
                
                 premises_len += results.len();

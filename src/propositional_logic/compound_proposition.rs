@@ -44,6 +44,32 @@ fn parse_operands(operands: &Operands) -> (String, String) {
     }
 }
 
+pub fn pack_operands(prop1: &CompoundProposition, prop2: &CompoundProposition) -> Operands {
+    if prop1.is_redundant() && prop2.is_redundant() {
+        Operands::Simple(prop1.degrade().unwrap(), prop2.degrade().unwrap())
+    } else if prop1.is_redundant() {
+        Operands::Mixed(Box::new(prop2.clone()), prop1.degrade().unwrap(), true)
+    } else if prop2.is_redundant() {
+        Operands::Mixed(Box::new(prop1.clone()), prop2.degrade().unwrap(), false)
+    } else {
+        Operands::Complex(Box::new(prop1.clone()), Box::new(prop2.clone()))
+    }
+}
+
+pub fn unpack_operands(ops: &Operands) -> (CompoundProposition, CompoundProposition) {
+    match ops {
+        Operands::Simple(a, b) => (CompoundProposition::new_redendant(&a), CompoundProposition::new_redendant(&b)),
+        Operands::Mixed(a, b, flip) =>
+            if *flip {
+                (CompoundProposition::new_redendant(&b), *a.clone())
+            } else {
+                (*a.clone(), CompoundProposition::new_redendant(&b))
+            }
+
+        Operands::Complex(a, b) => (*a.clone(), *b.clone())
+    }
+}
+
 impl CompoundProposition {
     pub fn new(operands: &Operands, operation: Operation) -> CompoundProposition {
         CompoundProposition {
